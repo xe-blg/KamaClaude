@@ -6,6 +6,7 @@ import fnmatch
 import json
 import logging
 import signal
+import sys
 import time
 from datetime import UTC
 from pathlib import Path
@@ -275,8 +276,13 @@ class CoreApp:
 
         loop = asyncio.get_running_loop()
         shutdown = asyncio.Event()
-        loop.add_signal_handler(signal.SIGINT, shutdown.set)
-        loop.add_signal_handler(signal.SIGTERM, shutdown.set)
+        # Windows 不支持 add_signal_handler，用 signal.signal 代替
+        if sys.platform == "win32":
+            signal.signal(signal.SIGINT, lambda s, f: shutdown.set())
+            signal.signal(signal.SIGTERM, lambda s, f: shutdown.set())
+        else:
+            loop.add_signal_handler(signal.SIGINT, shutdown.set)
+            loop.add_signal_handler(signal.SIGTERM, shutdown.set)
 
         await shutdown.wait()
 
